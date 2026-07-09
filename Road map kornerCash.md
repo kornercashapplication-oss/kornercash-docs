@@ -2,7 +2,7 @@
 
 Référence design : BackMarket (https://www.backmarket.fr/)
 
-**État général (fin session 2026-07-04)** : Les deux apps sont **EN LIGNE** sur Vercel — dashboard https://kornercash-dashboard.vercel.app et site https://kornercash-site.vercel.app (repos git connectés = auto-deploy). La **feature IA photos & descriptions** (dashboard, fal.ai) est **déployée + validée en prod** (189 générations bijoux, 0 échec) ; l'**Atelier de saisie en lot** a permis d'intégrer ~180 bijoux réels au catalogue. Restent : DNS `kornercash.ch` (accès domaine pas encore obtenu), paiement réel (site), taux EUR réel, e-mails transactionnels (Resend, domaine à vérifier), photos du reste du stock, coordonnées légales (`entreprise.ts`) + validation fiduciaire des tickets.
+**État général (session 2026-07-09)** : Les deux apps sont **EN LIGNE** sur Vercel — dashboard https://kornercash-dashboard.vercel.app et site https://kornercash-site.vercel.app (repos git connectés = auto-deploy). La **feature IA photos & descriptions** (dashboard, fal.ai) est **déployée + validée en prod** (189 générations bijoux, 0 échec) ; l'**Atelier** a permis d'intégrer ~180 bijoux réels. Le **paiement Stripe Checkout est CODÉ** (2026-07-09, commit local, mode test — pas encore déployé : reste test navigateur + env Vercel + webhook prod). Restent aussi : DNS `kornercash.ch` (accès domaine pas encore obtenu), taux EUR réel, e-mails transactionnels (Resend, domaine à vérifier), photos du reste du stock, coordonnées légales (`entreprise.ts`) + validation fiduciaire des tickets.
 
 ---
 
@@ -65,7 +65,7 @@ Référence design : BackMarket (https://www.backmarket.fr/)
 - [x] Ajout module Or : table `transactions_or` (migration `create_transactions_or`, verrouillée service key, testée + nettoyée) — *2026-06-30*
 - [x] Adresses multiples client : colonne `clients.adresses` (jsonb `'[]'`, migration `add_adresses_jsonb_clients`, non-bloquante pour le dashboard) — *2026-07-01*
 
-**Total : 9 tables (categories, sous_categories, produits, clients, commandes, ventes, rachats, transactions_or, produit_image_jobs), 23 migrations.** Schéma exact des colonnes = source de vérité `dashboard/lib/supabase/types.ts` (celui du site est un sous-ensemble volontaire à 8 tables). Sous-catégories : 18 (15 au seed initial + refonte taxonomie #17).
+**Total : 9 tables (categories, sous_categories, produits, clients, commandes, ventes, rachats, transactions_or, produit_image_jobs), 24 migrations.** Schéma exact des colonnes = source de vérité `dashboard/lib/supabase/types.ts` (celui du site est un sous-ensemble volontaire à 8 tables). Sous-catégories : 18 (15 au seed initial + refonte taxonomie #17).
 
 **Projet Supabase** : ref `nztqbfxsaduockzilrve`, région Frankfurt.
 **RLS** : `categories` / `sous_categories` / `produits` = lecture publique ; `clients` / `commandes` / `ventes` = authenticated « own » (chacun ses données) ; `rachats` / `transactions_or` / `produit_image_jobs` = verrouillés service key.
@@ -138,7 +138,7 @@ Dossier `site/`. **Stack** : Next.js **16** (App Router, fichier **`proxy.ts`** 
 4. **« Trouvez votre marque »** = grille de **tuiles sections** = sous-catégories (`components/category/section-tile.tsx`, config `lib/domain/sections.ts`), pas d'eyebrow
 5. **Avis Google** = `components/blocks/avis-google.tsx` : carrousel manuel de **captures d'écran** (`/public/avis/avis-N.png`), note figée **4,8 étoiles**, flèches + dots, fond en dégradé sky (#e6ecfb) → blanc ; contenu curé dans `lib/domain/avis.ts` (`AVIS_IMAGES` + `NOTE_GOOGLE`)
 
-**Les routes** : `/` · `/c/[slug]` (filtres grade/prix/recherche + `?sousCategorie=`) · `/bons-plans` · `/recherche` · `/p/[slug]` (fiche remaniée) · `/connexion` · `/compte` · `/commande` · `/contact` · `/cgv` · `/auth/confirm` + `sitemap`/`robots`. *(Les routes `/luxe` et `/vendre` n'existent plus.)*
+**Les routes** : `/` · `/c/[slug]` (filtres grade/prix/recherche + `?sousCategorie=`) · `/bons-plans` · `/recherche` · `/p/[slug]` (fiche remaniée) · `/connexion` · `/compte` · `/commande` · `/commande/merci` (retour paiement) · `/contact` · `/cgv` · `/auth/confirm` · `/api/stripe/webhook` + `sitemap`/`robots`. *(Les routes `/luxe` et `/vendre` n'existent plus.)*
 
 **Header** (`components/layout/header.tsx`) : logo à gauche, nav catégories avec **menus déroulants de sous-catégories** (`listCategoriesAvecSous`), recherche, sélecteur devise, compte, panier.
 
@@ -156,7 +156,7 @@ Dossier `site/`. **Stack** : Next.js **16** (App Router, fichier **`proxy.ts`** 
 - [x] Détection devise CHF/EUR + sélecteur manuel
 - [x] SEO (metadata par page, sitemap, robots, JSON-LD produit)
 - [x] Tests d'intégration Supabase auto-nettoyants : **15/15** (anon, service-role, RLS lockdown, auth+own, commande). Build + tsc + eslint : **0**.
-- [ ] **Paiement en ligne** (Stripe/… à confirmer) — **placeholder** : commande passée en `payee` sans encaissement réel
+- [x] **Paiement en ligne — Stripe Checkout, CODÉ (2026-07-09, commit local `2091dee`, PAS ENCORE DÉPLOYÉ)** : `creerSessionPaiement` remplace le placeholder (commande `en_attente` + stock réservé CAS + session Stripe hébergée 35 min → redirection) ; webhook `/api/stripe/webhook` = source de vérité (`completed` → `payee` + `mode_paiement` carte/twint ; `expired`/`failed` → `annulee` + stock restitué, idempotent) ; `/commande/merci` (filet webhook + vidage panier) ; annulation → expiration immédiate + stock rendu. Encaissement dans la devise affichée (CHF ou EUR taux fixe ; TWINT auto en CHF seulement, aucun `payment_method_types` codé en dur). Migration #24 `add_stripe_session_id_commandes`. Env : `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`. Smoke test API mode test OK (CHF + EUR). **Reste : test navigateur, TWINT à activer dans le Dashboard Stripe, env Vercel + webhook prod avant push.**
 - [ ] **E-mails transactionnels** (confirmation commande, expédition, remboursement)
 
 **Vérification e-mail (auto-gérée via Resend, PAS de config Supabase)** :
@@ -193,7 +193,7 @@ Inscription → `admin.generateLink({ type: 'signup' })` → e-mail de confirmat
 ## Dette technique / à revoir plus tard
 
 - [ ] **DNS `kornercash.ch` → Vercel** (Phase 7). Site + dashboard sont poussés et déployés sur Vercel ; il ne reste que le branchement du domaine (accès pas encore obtenu du client).
-- [ ] **Paiement réel** : brancher le prestataire (Stripe/…) et déclencher le passage commande `payee` + produit `vendu` **sur confirmation de paiement** — actuellement placeholder immédiat.
+- [ ] **Paiement Stripe — mise en prod** : le code est prêt (commit local, voir Phase 4). Séquence : tester le parcours navigateur en mode test → activer TWINT (Dashboard Stripe) → poser `STRIPE_SECRET_KEY` + `STRIPE_WEBHOOK_SECRET` dans Vercel → créer l'endpoint webhook prod (`/api/stripe/webhook`) → push → basculer en clés live à la mise en service réelle (compte Stripe au nom du client).
 - [ ] **Devise EUR** : brancher un taux réel (API Frankfurter, comme le cron `update_taux.py` du VPS) au lieu du taux fixe provisoire **1 CHF ≈ 1.06 €** (`lib/domain/devise.ts` : `formatPrix`, `convertir`, `versChf`).
 - [ ] **E-mail prod (Resend)** : vérifier le domaine `kornercash.ch` dans Resend (records DNS) puis mettre `EMAIL_FROM=KornerCash <no-reply@kornercash.ch>`. **Tant que non fait** : mode test = les mails ne partent qu'à l'adresse du compte Resend. Ajouter aussi `RESEND_API_KEY` + `EMAIL_FROM` aux env vars Vercel.
 - [ ] **Photos du reste du stock** (Phase 5) — ~180 bijoux réels déjà intégrés via l'Atelier ; reste le reste des 1 000–3 000 produits.
@@ -238,6 +238,7 @@ CHF/EUR (prix stockés en **CHF**), taux fixe provisoire **1 CHF ≈ 1.06 €** 
 - **Rachats + Ventes + scan** _(2026-07-04)_ : « Code de la pièce » (`clients.code_passeport`, migration #23) + photo directe de la pièce d'identité (caméra live → bucket privé) ; scan douchette (Produits + mode caisse) ; recherche/création rapide client et produit dans Nouvelle vente ; montants au centime exact (`chfExact` via `MoneyValue`).
 - **PWA sur les 2 apps** _(2026-07-09, ✅ validé par Anatole)_ : manifests (`app/manifest.ts`, plein écran `standalone`) + icônes 192/512/maskable — site = monogramme noir sur ivoire (icône existante), dashboard = **nouvelle icône monogramme blanc sur bleu `#3a5a99`** (il n'avait aucun logo, favicon Next par défaut remplacé). Installation : Android « Ajouter à l'écran d'accueil » / iOS Safari Partager → « Sur l'écran d'accueil ».
 - **Mots de passe dashboard provisoires** _(2026-07-09)_ : équipe + patron changés à la demande d'Anatole (valeurs volontairement simples, à remplacer avant livraison). Sécurité d'accès renforcée = options présentées, **décision en attente** (voir Dette technique).
+- **Paiement en ligne = Stripe Checkout (page hébergée)** _(2026-07-09)_ : choisi contre Payrexx/Wallee/Datatrans (comparatif frais + intégration + passation — Stripe : carte 2,9 % + 0.30, TWINT 1,9 % + 0.30, 0 abonnement, compte self-service au nom du client). **Encaissement dans la devise affichée** (CHF ou EUR au taux fixe du site — décision Anatole ; TWINT n'apparaît qu'en CHF, géré dynamiquement par Stripe). `commandes.total` reste en CHF (unité de compte du dashboard). Le webhook signé est la seule source de vérité du passage `payee` — fin du placeholder. Clés de TEST en local (`site/.env.local`, gitignoré) ; plugin Stripe + MCP `mcp.stripe.com` installés côté Claude.
 
 ---
 
@@ -249,7 +250,7 @@ CHF/EUR (prix stockés en **CHF**), taux fixe provisoire **1 CHF ≈ 1.06 €** 
 
 **Supabase** — projet `kornercash` (région Frankfurt)
 - Ref : `nztqbfxsaduockzilrve` · URL : `https://nztqbfxsaduockzilrve.supabase.co`
-- ✅ 9 tables + RLS + policies + 2 buckets Storage + seed catégories — 23 migrations (dernières : `add_statut_brouillon_produits` + `create_produit_image_jobs` 2026-07-02, `add_visible_site_to_produits` 2026-07-03, `add_code_passeport_clients` 2026-07-04)
+- ✅ 9 tables + RLS + policies + 2 buckets Storage + seed catégories — 24 migrations (dernières : `add_visible_site_to_produits` 2026-07-03, `add_code_passeport_clients` 2026-07-04, `add_stripe_session_id_commandes` 2026-07-09)
 
 **Vercel** (org `trusttheprocess`, plan Hobby)
 - Dashboard : **en ligne** → https://kornercash-dashboard.vercel.app (auto-deploy) — env `FAL_KEY` + 3 modèles `FAL_*` en Production (feature IA)

@@ -23,6 +23,7 @@ Source de vérité : `site/package.json`.
 | **Base de données** | Supabase (PostgreSQL managé) | `@supabase/supabase-js` `^2.109.0` | Tables, requêtes SQL, auth, stockage fichiers |
 | **Auth SSR** | @supabase/ssr | `^0.5.2` | Gestion de session par cookie côté serveur + refresh |
 | **Emails** | Resend | `^6.16.0` | E-mail de vérification d'inscription (voir plus bas) |
+| **Paiement** | Stripe (Checkout hébergé) | `stripe` `^22.3.0` | Encaissement carte / TWINT / Apple & Google Pay — SDK serveur uniquement (voir section Paiement) |
 | **Icônes** | lucide-react | `^1.22.0` | Jeu d'icônes |
 | **Toasts** | sonner | `^2.0.7` | Notifications UI |
 | **Variantes de style** | class-variance-authority + clsx + tailwind-merge | `^0.7.1` / `^2.1.1` / `^3.6.0` | Composition des classes Tailwind (ex: `components/ui/button.tsx`) |

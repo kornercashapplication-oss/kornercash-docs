@@ -53,6 +53,7 @@ Historique appliqué (ordre chronologique) :
 | 21 | `20260702122305` | `create_produit_image_jobs` | Nouvelle table `produit_image_jobs` (file de génération d'images IA async, atelier) : RLS service-role, trigger `set_updated_at`, FK `ON DELETE CASCADE` |
 | 22 | `20260703191259` | `add_visible_site_to_produits` | Colonne `produits.visible_site` (booléen, défaut `true`) — toggle « Site » par produit dans le dashboard |
 | 23 | `20260704131759` | `add_code_passeport_clients` | Colonne `clients.code_passeport` (texte, nullable) — code de la pièce d'identité saisi au rachat, stocké sur la fiche client (libellé UI : « Code de la pièce ») |
+| 24 | `20260709…` | `add_stripe_session_id_commandes` | Colonne `commandes.stripe_session_id` (texte, nullable, index unique partiel) — lien commande ↔ session Stripe Checkout (paiement en ligne), idempotence du webhook |
 
 ---
 
@@ -225,9 +226,12 @@ Note : les champs de contact/adresse sont optionnels en base pour permettre la c
 | `adresse_pays` | texte | oui | Suisse / France |
 | `numero_suivi` | texte | oui | Suivi colis (en ligne) |
 | `montant_rembourse` | nombre | oui | Si remboursement |
+| `stripe_session_id` | texte | oui | Session Stripe Checkout liée (commandes en ligne uniquement — index unique partiel, migration #24) |
 | `created_at` | timestamp | non (auto) | Création |
 
 Cette table absorbe les réservations (`statut`=réservée + `acompte`) et les remboursements (`statut`=remboursée + `montant_rembourse`).
+
+**Cycle de vie d'une commande en ligne (paiement Stripe, 2026-07-09)** : créée `en_attente` avec le stock déjà réservé (CAS) et sa `stripe_session_id` → le webhook (`checkout.session.completed`) la passe `payee` + `mode_paiement` réel (`carte`/`twint`) → session expirée ou abandonnée (`checkout.session.expired`, 35 min) : `annulee` + stock restitué. Transitions idempotentes (update conditionné sur `statut='en_attente'`). `total` reste en **CHF** (unité de compte) même quand l'encaissement Stripe se fait en EUR (taux fixe du site).
 
 ### 6. `ventes` (le détail — enfant)
 
