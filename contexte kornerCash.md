@@ -212,6 +212,7 @@ Remaniée : `components/product/product-header.tsx` + `product-buybox.tsx` + `pr
 
 - **Bandeau d'identité** en tête (e-mail · membre depuis · nombre de commandes) = signature visuelle de l'espace.
 - E-mail en lecture seule ; placeholder « ajouter un numéro » sur le téléphone.
+- **Fiche auto-réparée** (2026-07-09) : un utilisateur authentifié sans fiche `clients` (fiche supprimée, ex. reset de données) la voit recréée à la volée par `getMaFiche` (rattachement par e-mail sinon création service-role) — sinon `/connexion` ↔ `/compte` bouclaient en redirections infinies.
 - **Adresses multiples** (colonne jsonb `clients.adresses`) : menu déroulant + ajout / suppression (`components/compte/adresses-manager.tsx`).
 - **Rappel discret du panier** en cours (`components/compte/rappel-panier.tsx`) : une seule ligne, sans récapitulatif ni bouton (le tiroir panier gère le reste).
 - **Mes commandes** = lignes compactes avec détail repliable.
