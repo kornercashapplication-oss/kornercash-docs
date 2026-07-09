@@ -261,7 +261,9 @@ Ordre **exact** des sections rendues :
 | Confirmation e-mail | `/auth/confirm` (route handler `verifyOtp`) |
 | Connexion / inscription | `/connexion` |
 | Espace client | `/compte` |
-| Commande / paiement | `/commande` (paiement placeholder, statut `payee` sans encaissement) |
+| Commande / paiement | `/commande` (redirection vers Stripe Checkout hébergé — 2026-07-09) |
+| Retour paiement | `/commande/merci` (confirmation ou « paiement non finalisé », vide le panier si payé) |
+| Webhook paiement | `/api/stripe/webhook` (route handler, transitions de commande) |
 | Contact | `/contact` |
 | CGV | `/cgv` |
 
@@ -283,7 +285,7 @@ Ordre **exact** des sections rendues :
 ## 10. Base de données & schéma
 
 - **9 tables** : `categories`, `sous_categories`, `produits`, `clients`, `commandes`, `ventes`, `rachats`, `transactions_or`, `produit_image_jobs` (jobs IA de l'Atelier dashboard, service-role only).
-- **23 migrations**. Dernières : `add_statut_brouillon_produits` + `create_produit_image_jobs` (2026-07-02), `add_visible_site_to_produits` (2026-07-03), `add_code_passeport_clients` (2026-07-04).
+- **24 migrations**. Dernières : `add_visible_site_to_produits` (2026-07-03), `add_code_passeport_clients` (2026-07-04), `add_stripe_session_id_commandes` (2026-07-09).
 - **Schéma exact des colonnes** → `dashboard/lib/supabase/types.ts` (source de vérité, complet). Ne jamais deviner un nom de colonne : le lire ici. *(`site/lib/supabase/types.ts` = sous-ensemble volontaire à 8 tables, sans `produit_image_jobs` ni `code_passeport`.)*
 
 ---
@@ -309,7 +311,7 @@ Le back-office (dossier `dashboard/`) est **en ligne** : `https://kornercash-das
 ## 13. Reste à faire (dette technique / phases suivantes)
 
 - **DNS `kornercash.ch`** : brancher le domaine sur le déploiement Vercel existant (repo poussé + site en ligne depuis le 2026-07-02).
-- **Paiement réel** (Stripe ou équivalent) — actuellement commande placeholder (`payee` sans encaissement).
+- **Paiement Stripe — mise en prod** : intégration Checkout **codée en local** (2026-07-09, mode test). Reste : test navigateur, TWINT à activer, env Vercel + webhook prod avant push.
 - **Devise EUR** : brancher un **taux réel** (remplacer le 1.06 fixe).
 - **Resend** : vérifier le domaine `kornercash.ch` en prod.
 - **Photos** : reste du stock (1 000–3 000 produits) — ~180 bijoux réels déjà intégrés via l'Atelier IA du dashboard.

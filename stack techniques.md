@@ -140,7 +140,7 @@ Pour créer une nouvelle tuile, on utilise un modèle IA d'**édition d'images**
 
 ## Pages du site (les routes)
 
-`/` · `/c/[slug]` (filtres grade / prix / recherche + `?sousCategorie=`) · `/bons-plans` · `/recherche` · `/p/[slug]` (fiche produit remaniée : `product-header.tsx` + `product-buybox.tsx` + `product-gallery.tsx` + `product-sticky-bar.tsx` + `product-defauts.tsx`, bloc « Vous aimerez aussi ») · `/connexion` · `/compte` · `/commande` · `/contact` · `/cgv` · `/auth/confirm` + `sitemap` / `robots`. *(La route `/vendre` n'existe plus.)*
+`/` · `/c/[slug]` (filtres grade / prix / recherche + `?sousCategorie=`) · `/bons-plans` · `/recherche` · `/p/[slug]` (fiche produit remaniée : `product-header.tsx` + `product-buybox.tsx` + `product-gallery.tsx` + `product-sticky-bar.tsx` + `product-defauts.tsx`, bloc « Vous aimerez aussi ») · `/connexion` · `/compte` · `/commande` · `/commande/merci` (retour paiement Stripe) · `/contact` · `/cgv` · `/auth/confirm` · `/api/stripe/webhook` (webhook paiement) + `sitemap` / `robots`. *(La route `/vendre` n'existe plus.)*
 
 **Header** (`components/layout/header.tsx`) : logo à gauche, nav catégories avec **menus déroulants de sous-catégories** (`listCategoriesAvecSous`), recherche, sélecteur de devise, compte, panier.
 
@@ -168,7 +168,7 @@ La confirmation d'e-mail est gérée **par le code, via Resend** — **sans** ut
 
 **9 tables** : `categories`, `sous_categories`, `produits`, `clients`, `commandes`, `ventes`, `rachats`, `transactions_or`, `produit_image_jobs`.
 
-**Les migrations** (23 au total). Dernières : `refonte_taxonomie_sections_mode_autres` (#17) + `drop_produits_est_luxe` (#18) + `reorder_categories_nav` (#19 — nav : **Mode · Multimédia · Téléphone · Gaming · Autres**) le 2026-07-02, puis `add_statut_brouillon_produits` (#20) + `create_produit_image_jobs` (#21 — Atelier), `add_visible_site_to_produits` (#22, 2026-07-03 — toggle « Site »), `add_code_passeport_clients` (#23, 2026-07-04).
+**Les migrations** (24 au total). Dernières : `add_statut_brouillon_produits` (#20) + `create_produit_image_jobs` (#21 — Atelier, 2026-07-02), `add_visible_site_to_produits` (#22, 2026-07-03 — toggle « Site »), `add_code_passeport_clients` (#23, 2026-07-04), `add_stripe_session_id_commandes` (#24, 2026-07-09 — paiement Stripe).
 
 Le schéma exact des colonnes est dans **`dashboard/lib/supabase/types.ts`** (source de vérité, complet — celui du site est un sous-ensemble volontaire à 8 tables).
 
@@ -215,7 +215,7 @@ Code : `lib/ai/fal.ts` — **images via la file fal** (`queue.submit` + polling 
 ## Reste à faire (dette technique / phases suivantes)
 
 - **DNS `kornercash.ch`** : brancher le domaine sur les 2 déploiements Vercel existants (site + dashboard poussés et en ligne depuis le 2026-07-02 ; accès domaine pas encore obtenu).
-- **Paiement réel** : actuellement la commande est un **placeholder** (statut `payee` sans encaissement). À brancher sur un prestataire (Stripe ou celui du client, à confirmer).
+- **Paiement Stripe — mise en prod** : intégration **codée en local le 2026-07-09** (mode test, smoke test API OK). Reste : test navigateur, activer TWINT (Dashboard Stripe), env vars Vercel (`STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`) + endpoint webhook prod, push, puis clés live.
 - **Devise EUR** : remplacer le taux fixe `1.06` par une API de change réelle.
 - **E-mail Resend** : vérifier le domaine `kornercash.ch` en prod.
 - **Photos** : produire les photos du reste du stock (1 000–3 000 produits) — ~180 bijoux réels déjà intégrés via l'Atelier (2026-07-03).
