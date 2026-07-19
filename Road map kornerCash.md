@@ -2,7 +2,7 @@
 
 Référence design : BackMarket (https://www.backmarket.fr/)
 
-**État général (session 2026-07-19)** : Les deux apps sont **EN LIGNE** sur Vercel — dashboard https://kornercash-dashboard.vercel.app et site https://kornercash-site.vercel.app (repos git connectés = auto-deploy). La **feature IA photos & descriptions** (dashboard, fal.ai) est **déployée + validée en prod** (189 générations bijoux, 0 échec) ; l'**Atelier** a permis d'intégrer ~180 bijoux réels. Le **paiement Stripe Checkout est EN PROD en mode test** (testé 8/8 en local le 09-07 ; env Vercel + endpoint webhook prod posés le 19-07 ; **remboursement Stripe automatique** branché côté dashboard ; décisions tranchées : remboursement auto = OUI, Klarna = NON — reste le re-test du parcours en prod puis les clés live à la mise en service). Restent aussi : DNS `kornercash.ch` (accès domaine pas encore obtenu), taux EUR réel, e-mails transactionnels (Resend, domaine à vérifier), photos du reste du stock, coordonnées légales (`entreprise.ts`) + validation fiduciaire des tickets.
+**État général (session 2026-07-19)** : Les deux apps sont **EN LIGNE** sur Vercel — dashboard https://kornercash-dashboard.vercel.app et site https://kornercash-site.vercel.app (repos git connectés = auto-deploy). La **feature IA photos & descriptions** (dashboard, fal.ai) est **déployée + validée en prod** (189 générations bijoux, 0 échec) ; l'**Atelier** a permis d'intégrer ~180 bijoux réels. Le **paiement Stripe Checkout est EN PROD en mode test** (testé 8/8 en local le 09-07 ; env Vercel + endpoint webhook prod posés le 19-07 ; **remboursement Stripe automatique** branché côté dashboard ; décisions tranchées : remboursement auto = OUI, Klarna = NON — reste le re-test du parcours en prod puis les clés live à la mise en service). Restent aussi : DNS `kornercash.ch` (accès domaine pas encore obtenu), taux EUR réel, e-mails transactionnels (Resend, domaine à vérifier), photos du reste du stock, **migration Odoo** (produits + clients + fiches récap mensuelles — accès à demander au client, Phase 5bis), coordonnées légales (`entreprise.ts`) + validation fiduciaire des tickets.
 
 ---
 
@@ -169,6 +169,13 @@ Inscription → `admin.generateLink({ type: 'signup' })` → e-mail de confirmat
 - [x] **Premier lot réel : ~180 bijoux** (263 photos iCloud → brouillons Atelier → 189 générations IA → validés/finalisés ; 219 bijoux `en_stock` en DB au 2026-07-04) — voir `Bijoux à intégrer - catalogue.md`
 - [ ] Session photo du reste du stock (entre 1 000 et 3 000 produits)
 - [ ] Catégorisation + SEO en masse (à cadrer : au fil de l'eau via le dashboard ou en batch)
+
+### Phase 5bis : Migration Odoo — ⏳ EN ATTENTE DE L'ACCÈS (ajouté 2026-07-19)
+KornerCash gère aujourd'hui ses données dans **Odoo**. À migrer vers la DB Supabase avant la mise en service :
+- [ ] **Accès à Odoo** — à demander au client (**bloquant** pour toute la phase)
+- [ ] Migrer tous les **produits** d'Odoo → table `produits`
+- [ ] Migrer tous les **clients** d'Odoo → table `clients`
+- [ ] Sortir toutes les **fiches récap mensuelles** d'Odoo et les archiver (conservation — à garder même après l'abandon d'Odoo)
 
 ### Phase 6 : Tests — ⏳ À VENIR
 - [x] Tester le parcours d'achat **jusqu'au paiement** (recherche → panier → paiement Stripe : 8/8 en local, 2026-07-09) — *reste l'e-mail de confirmation (e-mails transactionnels pas encore développés) et une re-vérification en prod après déploiement*

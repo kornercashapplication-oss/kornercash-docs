@@ -12,6 +12,8 @@ Anatole est prestataire technique — il construit la structure et les process. 
 
 Magasin d'achat-revente (style EasyCash) à Lausanne. Ils rachètent et revendent tout type de produits de seconde main. Entre **1 000 et 3 000 produits** en stock actuellement.
 
+**Gestion actuelle : Odoo** (ERP) — les produits et les clients existants y sont. À migrer vers la DB Supabase avant la mise en service (accès Odoo à demander au client), et **exporter/archiver les fiches récap mensuelles** d'Odoo pour les conserver. Voir Road map Phase 5bis.
+
 **Convention de vocabulaire (important) :**
 - **Rachat** = KornerCash rachète un objet à un particulier → toujours en magasin uniquement, jamais en ligne
 - **Vente** = KornerCash vend un produit à un client → en magasin + en ligne (le site doit permettre la vente e-commerce)
