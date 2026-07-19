@@ -138,7 +138,7 @@ Dossier `site/`. **Stack** : Next.js **16** (App Router, fichier **`proxy.ts`** 
 4. **« Trouvez votre marque »** = grille de **tuiles sections** = sous-catégories (`components/category/section-tile.tsx`, config `lib/domain/sections.ts`), pas d'eyebrow
 5. **Avis Google** = `components/blocks/avis-google.tsx` : carrousel manuel de **captures d'écran** (`/public/avis/avis-N.png`), note figée **4,8 étoiles**, flèches + dots, fond en dégradé sky (#e6ecfb) → blanc ; contenu curé dans `lib/domain/avis.ts` (`AVIS_IMAGES` + `NOTE_GOOGLE`)
 
-**Les routes** : `/` · `/c/[slug]` (filtres grade/prix/recherche + `?sousCategorie=`) · `/bons-plans` · `/recherche` · `/p/[slug]` (fiche remaniée) · `/connexion` · `/compte` · `/commande` · `/commande/merci` (retour paiement) · `/contact` · `/cgv` · `/auth/confirm` · `/api/stripe/webhook` + `sitemap`/`robots`. *(Les routes `/luxe` et `/vendre` n'existent plus.)*
+**Les routes** : `/` · `/c/[slug]` (filtres grade/prix/recherche + `?sousCategorie=`) · `/bons-plans` · `/recherche` · `/p/[slug]` (fiche remaniée) · `/connexion` · `/mot-de-passe-oublie` · `/compte` · `/compte/nouveau-mot-de-passe` · `/commande` · `/commande/merci` (retour paiement) · `/contact` · `/cgv` · `/auth/confirm` · `/api/stripe/webhook` + `sitemap`/`robots`. *(Les routes `/luxe` et `/vendre` n'existent plus.)*
 
 **Header** (`components/layout/header.tsx`) : logo à gauche, nav catégories avec **menus déroulants de sous-catégories** (`listCategoriesAvecSous`), recherche, sélecteur devise, compte, panier.
 
@@ -161,6 +161,7 @@ Dossier `site/`. **Stack** : Next.js **16** (App Router, fichier **`proxy.ts`** 
 
 **Vérification e-mail (auto-gérée via Resend, PAS de config Supabase)** :
 Inscription → `admin.generateLink({ type: 'signup' })` → e-mail de confirmation envoyé par **Resend** (`lib/email/resend.ts` + `templates.ts`) → compte non confirmé → route `/auth/confirm` fait `verifyOtp(token_hash)` → session. La connexion est **bloquée tant que `email_confirmed_at` est null**. Repli auto-confirmation si `RESEND_API_KEY` absente. Env : `RESEND_API_KEY` + `EMAIL_FROM`.
+**Mot de passe oublié (2026-07-19, commit `78dd8b1`)** : lien sur `/connexion` → `/mot-de-passe-oublie` (réponse identique que le compte existe ou non) → `generateLink({type:'recovery'})` + e-mail Resend → `/auth/confirm?type=recovery` ouvre la session → `/compte/nouveau-mot-de-passe` (`auth.updateUser`). `RESEND_API_KEY` posée en prod (mode test : envois uniquement vers `kornercashapplication@gmail.com` tant que le domaine n'est pas vérifié — conséquence : l'inscription est passée du repli auto-confirmation au flux e-mail, les inscriptions d'autres adresses échoueront d'ici la vérification du domaine).
 
 ### Phase 5 : Photos produits — 🔨 PIPELINE FAIT + PREMIER LOT RÉEL INTÉGRÉ, reste le reste du stock
 - [x] **Pipeline traitement image (fond blanc + 2K)** — intégré au dashboard via l'IA fal.ai à la création produit (voir Phase 3) + Atelier pour le volume
@@ -180,7 +181,7 @@ Inscription → `admin.generateLink({ type: 'signup' })` → e-mail de confirmat
 
 ### Phase 7 : Mise en ligne & livraison — 🔨 EN COURS
 - [x] **Push du repo `kornercash-site`** (poussé sur `master` le 2026-07-01)
-- [x] **Déployer le site sur Vercel** → **https://kornercash-site.vercel.app** (env vars Supabase en Production ; `RESEND_API_KEY`/`EMAIL_FROM` à ajouter quand Resend sera branché)
+- [x] **Déployer le site sur Vercel** → **https://kornercash-site.vercel.app** (env vars Supabase en Production ; `RESEND_API_KEY` ajoutée le 2026-07-19 — `EMAIL_FROM` non posée = défaut `onboarding@resend.dev`)
 - [x] Déployer le dashboard sur Vercel (**en ligne : kornercash-dashboard.vercel.app**)
 - [ ] Configurer le DNS (kornercash.ch → Vercel) — *en attente de l'accès au domaine*
 - [ ] Configurer Google Analytics
@@ -197,7 +198,7 @@ Inscription → `admin.generateLink({ type: 'signup' })` → e-mail de confirmat
 - [x] **Remboursement Stripe automatique — DÉCIDÉ OUI + FAIT (2026-07-19, commit dashboard `e87b9ae`)** : `rembourserCommande` fait le refund Stripe AVANT la DB (`stripe_session_id` → `sessions.retrieve` → `refunds.create({payment_intent})` — remboursement total, devise d'encaissement CHF/EUR gérée par Stripe). Échec Stripe = commande intacte, re-cliquable ; `charge_already_refunded` toléré (reprise d'un essai interrompu après le refund) ; garde `en_attente` (rien encaissé) ; erreurs en valeur `{ok,error}` + toasts différenciés en ligne / magasin. Dep `stripe@^22` + `lib/stripe/server.ts` + env `STRIPE_SECRET_KEY` côté dashboard. Ventes magasin (sans `stripe_session_id`) : DB seule, argent rendu à la main — inchangé.
 - [x] **Klarna — DÉCIDÉ NON (2026-07-19)** : supprimé par Anatole dans le Dashboard Stripe (Settings → Payment methods). Aucun code impacté (moyens de paiement dynamiques, rien codé en dur).
 - [ ] **Devise EUR** : brancher un taux réel (API Frankfurter, comme le cron `update_taux.py` du VPS) au lieu du taux fixe provisoire **1 CHF ≈ 1.06 €** (`lib/domain/devise.ts` : `formatPrix`, `convertir`, `versChf`).
-- [ ] **E-mail prod (Resend)** : vérifier le domaine `kornercash.ch` dans Resend (records DNS) puis mettre `EMAIL_FROM=KornerCash <no-reply@kornercash.ch>`. **Tant que non fait** : mode test = les mails ne partent qu'à l'adresse du compte Resend. Ajouter aussi `RESEND_API_KEY` + `EMAIL_FROM` aux env vars Vercel.
+- [ ] **E-mail prod (Resend)** : vérifier le domaine `kornercash.ch` dans Resend (records DNS) puis poser `EMAIL_FROM=KornerCash <no-reply@kornercash.ch>` sur Vercel. `RESEND_API_KEY` déjà posée (2026-07-19). **Tant que le domaine n'est pas vérifié** : mode test = les mails ne partent que vers `kornercashapplication@gmail.com` (adresse du compte Resend) → inscriptions et resets d'autres adresses échoueront.
 - [ ] **Photos du reste du stock** (Phase 5) — ~180 bijoux réels déjà intégrés via l'Atelier ; reste le reste des 1 000–3 000 produits.
 - [ ] **E-mails transactionnels** (confirmation commande, expédition, remboursement).
 - [ ] **Dashboard** : compléter `lib/domain/entreprise.ts` (coordonnées légales), valider tickets par fiduciaire, supprimer le prototype `KornerCash-Interne/`.

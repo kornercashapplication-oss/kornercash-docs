@@ -140,7 +140,7 @@ Pour créer une nouvelle tuile, on utilise un modèle IA d'**édition d'images**
 
 ## Pages du site (les routes)
 
-`/` · `/c/[slug]` (filtres grade / prix / recherche + `?sousCategorie=`) · `/bons-plans` · `/recherche` · `/p/[slug]` (fiche produit remaniée : `product-header.tsx` + `product-buybox.tsx` + `product-gallery.tsx` + `product-sticky-bar.tsx` + `product-defauts.tsx`, bloc « Vous aimerez aussi ») · `/connexion` · `/compte` · `/commande` · `/commande/merci` (retour paiement Stripe) · `/contact` · `/cgv` · `/auth/confirm` · `/api/stripe/webhook` (webhook paiement) + `sitemap` / `robots`. *(La route `/vendre` n'existe plus.)*
+`/` · `/c/[slug]` (filtres grade / prix / recherche + `?sousCategorie=`) · `/bons-plans` · `/recherche` · `/p/[slug]` (fiche produit remaniée : `product-header.tsx` + `product-buybox.tsx` + `product-gallery.tsx` + `product-sticky-bar.tsx` + `product-defauts.tsx`, bloc « Vous aimerez aussi ») · `/connexion` · `/mot-de-passe-oublie` · `/compte` · `/compte/nouveau-mot-de-passe` · `/commande` · `/commande/merci` (retour paiement Stripe) · `/contact` · `/cgv` · `/auth/confirm` · `/api/stripe/webhook` (webhook paiement) + `sitemap` / `robots`. *(La route `/vendre` n'existe plus.)*
 
 **Header** (`components/layout/header.tsx`) : logo à gauche, nav catégories avec **menus déroulants de sous-catégories** (`listCategoriesAvecSous`), recherche, sélecteur de devise, compte, panier.
 
@@ -155,11 +155,12 @@ La confirmation d'e-mail est gérée **par le code, via Resend** — **sans** ut
 1. Inscription → `admin.generateLink({ type: 'signup' })` génère le lien de confirmation.
 2. Resend envoie l'e-mail (`lib/email/resend.ts` + `lib/email/templates.ts`).
 3. Le compte reste **non confirmé** jusqu'au clic.
-4. La route `/auth/confirm` fait `verifyOtp(token_hash)` → ouvre la session.
+4. La route `/auth/confirm` fait `verifyOtp(token_hash)` → ouvre la session (`type=recovery` → page nouveau mot de passe).
 5. La connexion est **bloquée** tant que `email_confirmed_at` est `null`.
 6. **Repli** : si `RESEND_API_KEY` est absente, auto-confirmation (utile en dev).
 
-**Variables d'env** : `RESEND_API_KEY` + `EMAIL_FROM`.
+**Variables d'env** : `RESEND_API_KEY` (posée en prod le 2026-07-19 — mode test, envois uniquement vers l'adresse du compte Resend) + `EMAIL_FROM` (défaut `onboarding@resend.dev`).
+**Mot de passe oublié (2026-07-19)** : `/mot-de-passe-oublie` → `generateLink({type:'recovery'})` → e-mail Resend → `/auth/confirm?type=recovery` → `/compte/nouveau-mot-de-passe` (`auth.updateUser`).
 **En prod** : il faudra **vérifier le domaine `kornercash.ch` dans Resend** avant l'envoi réel.
 
 ---
@@ -240,4 +241,4 @@ Code : `lib/ai/fal.ts` — **images via la file fal** (`queue.submit` + polling 
 - **2026-07-03** — Toggle **`visible_site`** par produit (migration #22) : filtre site + Switch dashboard. Intégration de ~180 bijoux réels via l'Atelier.
 - **2026-07-04** — IA image : **résolution 4K → 2K** (coût ÷1.33) + `num_images: 1` ; formulaire produit passé en **file fal + polling** (générations parallèles) ; **caméra live** getUserMedia ; **scan douchette** ; `clients.code_passeport` (migration #23) ; montants au centime exact (`chfExact`).
 - **2026-07-09** — **Stripe Checkout** codé côté site (`stripe` `^22.3.0`, migration #24 `add_stripe_session_id_commandes`) + testé 8/8 en local (TWINT activé). PWA sur les 2 apps (manifests + icônes).
-- **2026-07-19** — **Stripe EN PROD mode test** : env Vercel + endpoint webhook prod. **Remboursement automatique** côté dashboard (dep `stripe` ajoutée, `lib/stripe/server.ts`, refund du `payment_intent` avant la DB). Décisions : remboursement auto = oui, **Klarna retiré**.
+- **2026-07-19** — **Stripe EN PROD mode test** : env Vercel + endpoint webhook prod. **Remboursement automatique** côté dashboard (dep `stripe` ajoutée, `lib/stripe/server.ts`, refund du `payment_intent` avant la DB). Décisions : remboursement auto = oui, **Klarna retiré**. **Mot de passe oublié** sur le site (flux recovery + Resend, `RESEND_API_KEY` posée en prod — mode test).

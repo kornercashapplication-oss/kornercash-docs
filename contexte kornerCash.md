@@ -186,7 +186,7 @@ Deux applications distinctes + une base de données Supabase commune. **Les deux
 
 ### Pages (les routes)
 
-`/` · `/c/[slug]` (filtres grade/prix/recherche + `?sousCategorie=`) · `/bons-plans` · `/recherche` · `/p/[slug]` (fiche remaniée) · `/connexion` · `/compte` · `/commande` · `/commande/merci` (retour paiement Stripe) · `/contact` · `/cgv` · `/auth/confirm` · `/api/stripe/webhook` + `sitemap` / `robots`. **Plus de route `/vendre`** — la vente client a été retirée du site public.
+`/` · `/c/[slug]` (filtres grade/prix/recherche + `?sousCategorie=`) · `/bons-plans` · `/recherche` · `/p/[slug]` (fiche remaniée) · `/connexion` · `/mot-de-passe-oublie` · `/compte` · `/compte/nouveau-mot-de-passe` · `/commande` · `/commande/merci` (retour paiement Stripe) · `/contact` · `/cgv` · `/auth/confirm` · `/api/stripe/webhook` + `sitemap` / `robots`. **Plus de route `/vendre`** — la vente client a été retirée du site public.
 
 **Paiement Stripe Checkout (codé 2026-07-09 — EN PROD mode test depuis le 2026-07-19)** : `creerSessionPaiement` (`lib/actions/commande.ts`) remplace le placeholder `passerCommande` — commande créée `en_attente` + stock réservé (CAS conservé) + session Stripe hébergée (35 min, redirection) ; le **webhook** `/api/stripe/webhook` (`lib/paiement/confirmation.ts`) passe la commande `payee` + `mode_paiement` réel (carte/twint) sur `checkout.session.completed`, et restitue le stock (`annulee`) sur `expired`/`failed` — transitions idempotentes. `/commande/merci` = filet si webhook en retard + vidage du panier. Annulation depuis Stripe → expiration immédiate de la session + stock restitué. **Encaissement dans la devise affichée** (CHF ou EUR au taux fixe — TWINT visible seulement en CHF, automatique) ; `commandes.total` reste en CHF. Env : `STRIPE_SECRET_KEY` + `STRIPE_WEBHOOK_SECRET` (+ `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` non utilisée par le Checkout hébergé). Testé 8/8 en local par Anatole (2026-07-09, TWINT activé dans le Dashboard Stripe). Prod branchée le 2026-07-19 : env Vercel (site + dashboard) + endpoint webhook test `we_1Tuq6v1ywJcOEms7Udyg8pj9`. **Remboursement automatique** depuis le dashboard (refund Stripe, 2026-07-19) ; **Klarna retiré** (décision). **Reste** : re-test du parcours en prod (cartes test) + clés live à la mise en service réelle.
 
@@ -221,10 +221,11 @@ Remaniée : `components/product/product-header.tsx` + `product-buybox.tsx` + `pr
 ### Vérification e-mail (via RESEND, PAS de config Supabase)
 
 - Inscription → `admin.generateLink({type:'signup'})` → e-mail de confirmation envoyé par Resend (`lib/email/resend.ts` + `templates.ts`) → compte non confirmé.
-- Route `/auth/confirm` → `verifyOtp(token_hash)` → session.
+- Route `/auth/confirm` → `verifyOtp(token_hash)` → session (`type=signup` → `/compte` ; `type=recovery` → `/compte/nouveau-mot-de-passe`).
+- **Mot de passe oublié (2026-07-19)** : `/mot-de-passe-oublie` → `generateLink({type:'recovery'})` → e-mail Resend (`templateReinitialisation`) → `/auth/confirm?type=recovery` → page nouveau mot de passe (`auth.updateUser`). Réponse identique que le compte existe ou non.
 - Connexion **bloquée** si `email_confirmed_at` est `null`.
 - Repli auto-confirmation si `RESEND_API_KEY` absente.
-- Env : `RESEND_API_KEY` + `EMAIL_FROM`. En prod, il faudra **vérifier le domaine `kornercash.ch` dans Resend**.
+- Env : `RESEND_API_KEY` + `EMAIL_FROM`. **`RESEND_API_KEY` posée en prod Vercel (2026-07-19, mode test : envois uniquement vers l'adresse du compte Resend `kornercashapplication@gmail.com`** — les inscriptions d'autres adresses échoueront jusqu'à la vérification du domaine `kornercash.ch` dans Resend).
 
 ---
 
