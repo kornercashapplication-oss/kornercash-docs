@@ -22,7 +22,7 @@ Source de vérité : `site/package.json`.
 | **Markdown** | react-markdown | `^10.1.0` | Rendu du markdown (ex: descriptions produit générées) |
 | **Base de données** | Supabase (PostgreSQL managé) | `@supabase/supabase-js` `^2.109.0` | Tables, requêtes SQL, auth, stockage fichiers |
 | **Auth SSR** | @supabase/ssr | `^0.5.2` | Gestion de session par cookie côté serveur + refresh |
-| **Emails** | Resend | `^6.16.0` | E-mail de vérification d'inscription (voir plus bas) |
+| **Emails** | Resend | `^6.16.0` | Vérification d'inscription, reset mot de passe, confirmation de commande (+ expédition/remboursement côté dashboard) |
 | **Paiement** | Stripe (Checkout hébergé) | `stripe` `^22.3.0` | Encaissement carte / TWINT / Apple & Google Pay — SDK serveur uniquement (voir section Paiement) |
 | **Icônes** | lucide-react | `^1.22.0` | Jeu d'icônes |
 | **Toasts** | sonner | `^2.0.7` | Notifications UI |
@@ -41,7 +41,7 @@ Versions exactes → `site/package.json` (source de vérité).
 **Deux apps Next.js séparées, reliées à la même base de données Supabase.**
 
 - **Site e-commerce** : dossier `site/` — **en ligne** sur https://kornercash-site.vercel.app (repo `kornercashapplication-oss/kornercash-site`, branche `master`, auto-deploy). Reste : DNS `kornercash.ch`.
-- **Dashboard de gestion** : dossier `dashboard/` — **en ligne** sur https://kornercash-dashboard.vercel.app (Vercel, auto-deploy à chaque push). Next 16 + React 19 + Tailwind 4 + Base UI (paquet `shadcn` `^4.12.0` pour la CLI de composants, `tw-animate-css`, `next-themes` pour le thème). **7 écrans** (Tableau de bord, Ventes, Rachats, Produits, **Atelier** [saisie en lot + jobs IA asynchrones], Clients, Module Or) + **pages imprimables (étiquettes / tickets)**. Auth à 2 mots de passe (équipe / patron) → **cookie signé HMAC**. Client Supabase **service-role** (`@supabase/supabase-js`, bypass RLS — le dashboard est l'outil interne de l'équipe). `sharp` pour le traitement d'images, `@fal-ai/client` pour la génération IA (voir section IA), `stripe` `^22.3.0` pour le **remboursement automatique** des commandes en ligne (refund du `payment_intent` via `stripe_session_id` — env `STRIPE_SECRET_KEY`, 2026-07-19). Scan douchette code-barres (`scanner-dialog.tsx`, zéro dépendance) + caméra live getUserMedia (`camera-capture.tsx`). Tests via `vitest`. Reste : compléter `lib/domain/entreprise.ts` (coordonnées légales), faire valider les tickets par la fiduciaire.
+- **Dashboard de gestion** : dossier `dashboard/` — **en ligne** sur https://kornercash-dashboard.vercel.app (Vercel, auto-deploy à chaque push). Next 16 + React 19 + Tailwind 4 + Base UI (paquet `shadcn` `^4.12.0` pour la CLI de composants, `tw-animate-css`, `next-themes` pour le thème). **7 écrans** (Tableau de bord, Ventes, Rachats, Produits, **Atelier** [saisie en lot + jobs IA asynchrones], Clients, Module Or) + **pages imprimables (étiquettes / tickets)**. Auth à 2 mots de passe (équipe / patron) → **cookie signé HMAC**. Client Supabase **service-role** (`@supabase/supabase-js`, bypass RLS — le dashboard est l'outil interne de l'équipe). `sharp` pour le traitement d'images, `@fal-ai/client` pour la génération IA (voir section IA), `stripe` `^22.3.0` pour le **remboursement automatique** des commandes en ligne (refund du `payment_intent` via `stripe_session_id` — env `STRIPE_SECRET_KEY`, 2026-07-19), `resend` pour les **e-mails d'expédition et de remboursement** (`lib/email/`, env `RESEND_API_KEY`, 2026-07-19). Scan douchette code-barres (`scanner-dialog.tsx`, zéro dépendance) + caméra live getUserMedia (`camera-capture.tsx`). Tests via `vitest`. Reste : compléter `lib/domain/entreprise.ts` (coordonnées légales), faire valider les tickets par la fiduciaire.
 
 **Particularité Next 16 (dashboard)** : middleware = `proxy.ts` (renommage du `middleware.ts`), comme le site.
 
@@ -169,7 +169,7 @@ La confirmation d'e-mail est gérée **par le code, via Resend** — **sans** ut
 
 **9 tables** : `categories`, `sous_categories`, `produits`, `clients`, `commandes`, `ventes`, `rachats`, `transactions_or`, `produit_image_jobs`.
 
-**Les migrations** (24 au total). Dernières : `add_statut_brouillon_produits` (#20) + `create_produit_image_jobs` (#21 — Atelier, 2026-07-02), `add_visible_site_to_produits` (#22, 2026-07-03 — toggle « Site »), `add_code_passeport_clients` (#23, 2026-07-04), `add_stripe_session_id_commandes` (#24, 2026-07-09 — paiement Stripe).
+**Les migrations** (25 au total). Dernières : `add_visible_site_to_produits` (#22, 2026-07-03 — toggle « Site »), `add_code_passeport_clients` (#23, 2026-07-04), `add_stripe_session_id_commandes` (#24, 2026-07-09 — paiement Stripe), `add_taux_eur_commandes` (#25, 2026-07-19 — taux EUR figé par commande).
 
 Le schéma exact des colonnes est dans **`dashboard/lib/supabase/types.ts`** (source de vérité, complet — celui du site est un sous-ensemble volontaire à 8 tables).
 
@@ -217,7 +217,7 @@ Code : `lib/ai/fal.ts` — **images via la file fal** (`queue.submit` + polling 
 
 - **DNS `kornercash.ch`** : brancher le domaine sur les 2 déploiements Vercel existants (site + dashboard poussés et en ligne depuis le 2026-07-02 ; accès domaine pas encore obtenu).
 - **Paiement Stripe — EN PROD mode test depuis le 2026-07-19** : testé 8/8 en local (2026-07-09, TWINT activé), env vars Vercel posées (`STRIPE_SECRET_KEY` site + dashboard, `STRIPE_WEBHOOK_SECRET`) + endpoint webhook prod créé, remboursement automatique branché côté dashboard. Reste : re-test du parcours en prod (cartes test) + clés live à la mise en service réelle.
-- **Devise EUR** : remplacer le taux fixe `1.06` par une API de change réelle.
+- ~~Devise EUR~~ **FAIT (2026-07-19)** : taux réel via l'API Frankfurter (`getTauxEurChf`, cache 6 h, repli 1.06), figé par commande (`taux_eur`).
 - **E-mail Resend** : vérifier le domaine `kornercash.ch` en prod.
 - **Photos** : produire les photos du reste du stock (1 000–3 000 produits) — ~180 bijoux réels déjà intégrés via l'Atelier (2026-07-03).
 - **E-mails transactionnels** : confirmation de commande, expédition (seule la vérification d'inscription est faite).
@@ -241,4 +241,4 @@ Code : `lib/ai/fal.ts` — **images via la file fal** (`queue.submit` + polling 
 - **2026-07-03** — Toggle **`visible_site`** par produit (migration #22) : filtre site + Switch dashboard. Intégration de ~180 bijoux réels via l'Atelier.
 - **2026-07-04** — IA image : **résolution 4K → 2K** (coût ÷1.33) + `num_images: 1` ; formulaire produit passé en **file fal + polling** (générations parallèles) ; **caméra live** getUserMedia ; **scan douchette** ; `clients.code_passeport` (migration #23) ; montants au centime exact (`chfExact`).
 - **2026-07-09** — **Stripe Checkout** codé côté site (`stripe` `^22.3.0`, migration #24 `add_stripe_session_id_commandes`) + testé 8/8 en local (TWINT activé). PWA sur les 2 apps (manifests + icônes).
-- **2026-07-19** — **Stripe EN PROD mode test** : env Vercel + endpoint webhook prod. **Remboursement automatique** côté dashboard (dep `stripe` ajoutée, `lib/stripe/server.ts`, refund du `payment_intent` avant la DB). Décisions : remboursement auto = oui, **Klarna retiré**. **Mot de passe oublié** sur le site (flux recovery + Resend, `RESEND_API_KEY` posée en prod — mode test).
+- **2026-07-19** — **Stripe EN PROD mode test** : env Vercel + endpoint webhook prod. **Remboursement automatique** côté dashboard (dep `stripe` ajoutée, `lib/stripe/server.ts`, refund du `payment_intent` avant la DB). Décisions : remboursement auto = oui, **Klarna retiré**. **Mot de passe oublié** sur le site (flux recovery + Resend, `RESEND_API_KEY` posée en prod — mode test). **E-mails transactionnels** (confirmation webhook / expédition / remboursement — jamais bloquants) + **taux EUR réel** (Frankfurter, migration #25 `taux_eur`) + **flux Expédition** dashboard.

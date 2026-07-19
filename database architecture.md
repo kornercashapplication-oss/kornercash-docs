@@ -54,6 +54,7 @@ Historique appliqué (ordre chronologique) :
 | 22 | `20260703191259` | `add_visible_site_to_produits` | Colonne `produits.visible_site` (booléen, défaut `true`) — toggle « Site » par produit dans le dashboard |
 | 23 | `20260704131759` | `add_code_passeport_clients` | Colonne `clients.code_passeport` (texte, nullable) — code de la pièce d'identité saisi au rachat, stocké sur la fiche client (libellé UI : « Code de la pièce ») |
 | 24 | `20260709…` | `add_stripe_session_id_commandes` | Colonne `commandes.stripe_session_id` (texte, nullable, index unique partiel) — lien commande ↔ session Stripe Checkout (paiement en ligne), idempotence du webhook |
+| 25 | `20260719…` | `add_taux_eur_commandes` | Colonne `commandes.taux_eur` (nombre, nullable) — taux CHF→EUR figé à l'encaissement d'une commande en ligne en EUR (NULL = CHF, magasin, ou antérieure au taux dynamique → repli 1.06 à l'affichage) |
 
 ---
 
@@ -227,6 +228,7 @@ Note : les champs de contact/adresse sont optionnels en base pour permettre la c
 | `numero_suivi` | texte | oui | Suivi colis (en ligne) |
 | `montant_rembourse` | nombre | oui | Si remboursement |
 | `stripe_session_id` | texte | oui | Session Stripe Checkout liée (commandes en ligne uniquement — index unique partiel, migration #24) |
+| `taux_eur` | nombre | oui | Taux CHF→EUR figé à l'encaissement (commandes en ligne en EUR — migration #25). L'historique et les e-mails s'affichent à ce taux |
 | `created_at` | timestamp | non (auto) | Création |
 
 Cette table absorbe les réservations (`statut`=réservée + `acompte`) et les remboursements (`statut`=remboursée + `montant_rembourse`).
