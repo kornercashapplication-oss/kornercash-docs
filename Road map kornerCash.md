@@ -209,6 +209,7 @@ KornerCash gère aujourd'hui ses données dans **Odoo**. À migrer vers la DB Su
 - [ ] **E-mail prod (Resend)** : vérifier le domaine `kornercash.ch` dans Resend (records DNS) puis poser `EMAIL_FROM=KornerCash <no-reply@kornercash.ch>` sur Vercel. `RESEND_API_KEY` déjà posée (2026-07-19). **Tant que le domaine n'est pas vérifié** : mode test = les mails ne partent que vers `kornercashapplication@gmail.com` (adresse du compte Resend) → inscriptions et resets d'autres adresses échoueront.
 - [ ] **Photos du reste du stock** (Phase 5) — ~180 bijoux réels déjà intégrés via l'Atelier ; reste le reste des 1 000–3 000 produits.
 - [ ] **E-mails transactionnels** (confirmation commande, expédition, remboursement).
+- [ ] **Section « Réservation »** (ajouté 2026-07-19) : écran/flux à coder — la DB est déjà prête (`commandes.statut='reservee'` + colonne `acompte`). Fonctionnement exact (durée, montant d'acompte, annulation) à définir avec le client.
 - [ ] **Dashboard** : compléter `lib/domain/entreprise.ts` (coordonnées légales), valider tickets par fiduciaire, supprimer le prototype `KornerCash-Interne/`.
 - [ ] **Renforcement de l'accès dashboard** : les 2 mots de passe partagés actuels sont **provisoires et faibles** (posés le 2026-07-09, à remplacer avant livraison). Options proposées le 2026-07-09 (comptes individuels Supabase Auth, TOTP, appareils de confiance, passkeys, Cloudflare Access, limite de tentatives…) — **aucune retenue pour l'instant, Anatole y réfléchit**.
 
