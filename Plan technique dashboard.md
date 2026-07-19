@@ -79,7 +79,7 @@ dashboard/
 ├── components.json · tsconfig.json · package.json · vitest.config.ts
 ```
 
-**Variables d'environnement** (`.env.example`) : `NEXT_PUBLIC_SUPABASE_URL`, `SUPABASE_SERVICE_KEY`, `DASHBOARD_PW_EQUIPE`, `DASHBOARD_PW_PATRON`, `SESSION_SECRET`, `FAL_KEY`, `FAL_IMAGE_MODEL`, `FAL_TEXT_MODEL`, `FAL_TEXT_LLM`.
+**Variables d'environnement** (`.env.example`) : `NEXT_PUBLIC_SUPABASE_URL`, `SUPABASE_SERVICE_KEY`, `DASHBOARD_PW_EQUIPE`, `DASHBOARD_PW_PATRON`, `SESSION_SECRET`, `FAL_KEY`, `FAL_IMAGE_MODEL`, `FAL_TEXT_MODEL`, `FAL_TEXT_LLM`, `STRIPE_SECRET_KEY` (remboursements, 2026-07-19 — même clé que le site).
 
 > Pas de `tailwind.config.ts` : Tailwind 4 se configure dans `globals.css` (`@import "tailwindcss"`) + `postcss.config.mjs`.
 
@@ -124,7 +124,7 @@ Pour chaque domaine : 1 fichier lecture (`queries/`) + 1 fichier mutations (`act
 23. **Ventes** (liste + création : lignes, **remise par ligne**, recherche produit ; reliée à un client)
 
 ### Étape 6 — Finitions ✅ FAIT
-24. Étiquette produit imprimable (code-barres Code128 maison `lib/barcode.ts`, route `/etiquette/[id]`) · Remboursement de commande (statut + remise en stock) · Responsive tablette/téléphone (nav mobile tiroir + tableaux scroll) · Tickets vente/rachat imprimables (`/ticket/vente/[id]`, `/ticket/rachat/[id]`)
+24. Étiquette produit imprimable (code-barres Code128 maison `lib/barcode.ts`, route `/etiquette/[id]`) · Remboursement de commande (refund Stripe automatique [2026-07-19] + statut + remise en stock) · Responsive tablette/téléphone (nav mobile tiroir + tableaux scroll) · Tickets vente/rachat imprimables (`/ticket/vente/[id]`, `/ticket/rachat/[id]`)
 
 ### Étape 7 — IA photos & descriptions produits ✅ FAIT (déployé en prod)
 25. `lib/ai/` (config, `fal.ts`, `builders.ts`, `template.ts`) + `lib/actions/ia.ts` + composants `photo-ia` / `description-ia` dans le formulaire produit. **Photo** : upload des refs sur fal → génération via `nano-banana-2/edit` (fond blanc carré, **résolution `2K` + `num_images: 1` figés en dur** dans `builders.ts` — passés de 4K à 2K le 2026-07-04 pour le coût, 1.5× vs 2×) via la **file fal** (voir section « Formulaire produit » en fin de doc) → validation employé (rotation via `sharp`, y compris après validation via `pivoterPhotoProduit`) → bucket `produits`. **Description** : LLM vision (`any-llm/vision`, Gemini par défaut) à partir des champs + photos, `fal.subscribe` avec timeout 45 s. Modèles configurables par env (`FAL_*`) — mais PAS la résolution.
