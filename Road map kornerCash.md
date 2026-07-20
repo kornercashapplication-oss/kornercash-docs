@@ -2,7 +2,9 @@
 
 Référence design : BackMarket (https://www.backmarket.fr/)
 
-**État général (session 2026-07-19)** : Les deux apps sont **EN LIGNE** sur Vercel — dashboard https://kornercash-dashboard.vercel.app et site https://kornercash-site.vercel.app (repos git connectés = auto-deploy). La **feature IA photos & descriptions** (dashboard, fal.ai) est **déployée + validée en prod** (189 générations bijoux, 0 échec) ; l'**Atelier** a permis d'intégrer ~180 bijoux réels. Le **paiement Stripe Checkout est EN PROD en mode test** (testé 8/8 en local le 09-07 ; env Vercel + endpoint webhook prod posés le 19-07 ; **remboursement Stripe automatique** branché côté dashboard ; décisions tranchées : remboursement auto = OUI, Klarna = NON). **✅ RE-TEST PROD VALIDÉ par Anatole (19-07)** : achat + e-mail confirmation, expédition + e-mail, remboursement + e-mail + refund Stripe vérifié via API (`re_3TuuvG…` succeeded) — 2 correctifs au passage : panier bfcache/multi-onglet (`324cb41`), statut « À expédier » orange (`d5bfe3b`). Reste : clés live à la mise en service. **Faits le 19-07** : taux EUR réel (API Frankfurter, figé par commande) · e-mails transactionnels (confirmation / expédition / remboursement) · flux Expédition dashboard · prototype confirmé supprimé. Restent aussi : DNS `kornercash.ch` (accès domaine pas encore obtenu), vérification du domaine Resend (e-mails vers de vrais clients), photos du reste du stock, **migration Odoo** (produits + clients + fiches récap mensuelles — accès à demander au client, Phase 5bis), coordonnées légales (`entreprise.ts`) + validation fiduciaire des tickets.
+**État général (session 2026-07-20)** : **Phase 6 (Tests) quasi terminée** — Anatole a validé le 2026-07-20 le dashboard sur tablette/téléphone, le process de rachat complet, la synchro site/dashboard et les devises CHF/EUR. Seul le **SEO (Google Search Console)** reste à vérifier, et il dépend du branchement DNS de `kornercash.ch`.
+
+Les deux apps sont **EN LIGNE** sur Vercel — dashboard https://kornercash-dashboard.vercel.app et site https://kornercash-site.vercel.app (repos git connectés = auto-deploy). La **feature IA photos & descriptions** (dashboard, fal.ai) est **déployée + validée en prod** (189 générations bijoux, 0 échec) ; l'**Atelier** a permis d'intégrer ~180 bijoux réels. Le **paiement Stripe Checkout est EN PROD en mode test** (testé 8/8 en local le 09-07 ; env Vercel + endpoint webhook prod posés le 19-07 ; **remboursement Stripe automatique** branché côté dashboard ; décisions tranchées : remboursement auto = OUI, Klarna = NON). **✅ RE-TEST PROD VALIDÉ par Anatole (19-07)** : achat + e-mail confirmation, expédition + e-mail, remboursement + e-mail + refund Stripe vérifié via API (`re_3TuuvG…` succeeded) — 2 correctifs au passage : panier bfcache/multi-onglet (`324cb41`), statut « À expédier » orange (`d5bfe3b`). Reste : clés live à la mise en service. **Faits le 19-07** : taux EUR réel (API Frankfurter, figé par commande) · e-mails transactionnels (confirmation / expédition / remboursement) · flux Expédition dashboard · prototype confirmé supprimé. Restent aussi : DNS `kornercash.ch` (accès domaine pas encore obtenu), vérification du domaine Resend (e-mails vers de vrais clients), photos du reste du stock, **migration Odoo** (produits + clients + fiches récap mensuelles — accès à demander au client, Phase 5bis), coordonnées légales (`entreprise.ts`) + validation fiduciaire des tickets.
 
 ---
 
@@ -178,14 +180,14 @@ KornerCash gère aujourd'hui ses données dans **Odoo**. À migrer vers la DB Su
 - [ ] Migrer tous les **clients** d'Odoo → table `clients`
 - [ ] Sortir toutes les **fiches récap mensuelles** d'Odoo et les archiver (conservation — à garder même après l'abandon d'Odoo)
 
-### Phase 6 : Tests — ⏳ À VENIR
+### Phase 6 : Tests — 🔨 QUASI TERMINÉE (reste le SEO)
 - [x] Tester le parcours d'achat **jusqu'au paiement** (recherche → panier → paiement Stripe : 8/8 en local 09-07, **re-vérifié EN PROD le 19-07** : achat + e-mail de confirmation + vidage panier [corrigé `324cb41`])
-- [ ] Tester le dashboard sur tablette et téléphone
-- [ ] Tester le process de rachat complet (formulaire → pièce d'identité → signature → étiquette)
-- [ ] Tester la synchronisation site/dashboard (vente en magasin → produit disparaît du site)
-- [ ] Tester les devises CHF/EUR
+- [x] Tester le dashboard sur tablette et téléphone — **validé par Anatole le 2026-07-20**
+- [x] Tester le process de rachat complet (formulaire → pièce d'identité → signature → étiquette) — **validé par Anatole le 2026-07-20**
+- [x] Tester la synchronisation site/dashboard (vente en magasin → produit disparaît du site) — **validé par Anatole le 2026-07-20**
+- [x] Tester les devises CHF/EUR — **validé par Anatole le 2026-07-20**
 - [x] Tester les e-mails transactionnels (**prod, 19-07** : confirmation + expédition + remboursement reçus — mode test Resend, vers `kornercashapplication@gmail.com`)
-- [ ] Vérifier le SEO (Google Search Console)
+- [ ] Vérifier le SEO (Google Search Console) — *seul item restant de la Phase 6 ; dépend du DNS `kornercash.ch`*
 
 ### Phase 7 : Mise en ligne & livraison — 🔨 EN COURS
 - [x] **Push du repo `kornercash-site`** (poussé sur `master` le 2026-07-01)
