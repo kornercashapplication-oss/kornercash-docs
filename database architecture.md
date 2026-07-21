@@ -55,6 +55,7 @@ Historique appliqué (ordre chronologique) :
 | 23 | `20260704131759` | `add_code_passeport_clients` | Colonne `clients.code_passeport` (texte, nullable) — code de la pièce d'identité saisi au rachat, stocké sur la fiche client (libellé UI : « Code de la pièce ») |
 | 24 | `20260709…` | `add_stripe_session_id_commandes` | Colonne `commandes.stripe_session_id` (texte, nullable, index unique partiel) — lien commande ↔ session Stripe Checkout (paiement en ligne), idempotence du webhook |
 | 25 | `20260719…` | `add_taux_eur_commandes` | Colonne `commandes.taux_eur` (nombre, nullable) — taux CHF→EUR figé à l'encaissement d'une commande en ligne en EUR (NULL = CHF, magasin, ou antérieure au taux dynamique → repli 1.06 à l'affichage) |
+| 26 | `20260721…` | `add_odoo_id_produits_clients` | Colonnes `produits.odoo_id` + `clients.odoo_id` (bigint, nullable, **index unique**) — traçabilité + upsert idempotent de la migration Odoo→Supabase (NULL = créé nativement dans le dashboard). Voir section « Import Odoo → Supabase » |
 
 ---
 
@@ -167,13 +168,14 @@ Contenu : 5 catégories (`nom_fr` live, dans l'ordre `ordre` de la nav depuis mi
 | `quantite` | entier | non (défaut 1) | Nombre d'exemplaires (CHECK `>= 0`) |
 | `photos` | tableau de texte (`text[]`) | non (défaut `{}`) | URLs des photos ordonnées |
 | `defauts` | jsonb | non (défaut `[]`) | `[{description, photo}]` |
-| `code_barres` | texte | oui | Étiquette — **généré auto** = `code_article` (encodable Code128) |
-| `code_article` | texte | oui | Code interne KornerCash |
+| `code_barres` | texte | oui | Étiquette (Code128). **Natif** : = `code_article` (auto). **Importé d'Odoo** : = code-barres Odoo conservé (ce qu'encodent les anciennes étiquettes magasin → scannables sans réétiquetage). ⚠️ Ne jamais l'écraser sur un import |
+| `code_article` | texte | oui | Code interne KornerCash (`GAM-0042`…). NULL sur les imports Odoo (système de réf réservé aux nouveaux articles) |
 | `date_rachat` | date | oui | Date d'entrée en stock (vide si import en masse) |
 | `statut` | texte | non (défaut) | `en_stock` / `vendu` / `reserve` / `archive` / `brouillon` (CHECK ; `archive` = soft-delete ; `brouillon` = en cours de saisie atelier, exclu du site ET de l'écran Produits) |
 | `est_bon_plan` | booléen | non (défaut) | Tag Bons Plans |
 | `visible_site` | booléen | non (défaut `true`) | Toggle « Site » — produit affiché ou non sur le site public (Switch dans la liste Produits du dashboard) |
 | `rachat_id` | uuid (FK → rachats) | oui | Provenance |
+| `odoo_id` | entier (bigint) | oui | ID `product.template` Odoo — traçabilité + upsert de la migration Odoo→Supabase (NULL = créé nativement). **Index unique.** Absent de `types.ts` (colonne DB-only, non référencée par le code) |
 | `created_at` | timestamp | non (auto) | Création |
 | `updated_at` | timestamp | non (auto) | Dernière modif |
 
@@ -197,6 +199,7 @@ Note : produit fongible (2 boosters identiques) = 1 ligne, `quantite` = 2. Produ
 | `est_blackliste` | booléen | non (défaut) | Blacklisté oui/non |
 | `piece_identite_url` | texte | oui | Photo pièce d'identité (rachats) — stockée une fois |
 | `code_passeport` | texte | oui | Code de la pièce d'identité — saisi au rachat, mis à jour sur la fiche (libellé UI : « Code de la pièce ») |
+| `odoo_id` | entier (bigint) | oui | ID `res.partner` Odoo — traçabilité + upsert de la migration Odoo→Supabase (NULL = créé nativement). **Index unique.** Absent de `types.ts` (colonne DB-only) |
 | `created_at` | timestamp | non (auto) | Création |
 | `updated_at` | timestamp | non (auto) | Dernière modif |
 
@@ -353,3 +356,26 @@ File d'attente des générations d'image IA de l'**atelier de saisie en lot** (`
 - **Trigger** : `updated_at` mis à jour automatiquement sur `produits`, `clients`, `transactions_or` et `produit_image_jobs` (fonction `set_updated_at`, `search_path` figé pour la sécurité).
 
 > **Note fiches clients** : un employé peut créer une **fiche client** depuis le dashboard (client physique en magasin) → ligne dans `clients` avec `auth_user_id` à NULL (aucun compte de connexion). Un **compte en ligne** (le client s'inscrit sur le site) remplit ce champ. La vérification d'e-mail est gérée côté site via Resend (`admin.generateLink({type:'signup'})` → route `/auth/confirm`), pas par la config Supabase.
+
+---
+
+## Import Odoo → Supabase (test réussi 2026-07-21)
+
+KornerCash gérait produits + clients dans une base **Odoo 17** mutualisée (`breezb2b-wholesale`, société `Kornercash` = `company_id=2`, aux côtés de Breez et Ale You Need). Pipeline de migration **idempotent** (rejouable) → dossier vault `1 PROJETS/kornerCash/migration-odoo/` (script `odoo_import.py` sans secret + `README.md` = mapping complet).
+
+**Mécanisme** : colonne **`odoo_id`** (unique) sur `produits` + `clients` (migration #26) → upsert `on_conflict=odoo_id` (2ᵉ passage = mise à jour, pas de doublon) + nettoyage trivial (`DELETE … WHERE odoo_id IS NOT NULL`).
+
+**Importé lors du test** :
+- **6 842 produits en stock** (`statut='en_stock'`, `visible_site=false` → invisibles du site tant que non revus). Catégories Odoo mappées vers les 5 catégories ; **exclus** : « Bijoux » (categ 1, fourre-tout or-au-poids + bazar comptoir), « Bijoux en or » (58), « Or à la casse » (54) → relèvent du module Or.
+- **1 869 vendeurs de rachat** (`res.partner` `person` + `supplier_rank>0`, créés par les opérateurs KC). POS magasin anonyme → aucun client magasin exploitable.
+
+**Règle étiquettes/scanner** (validée) : le `code_barres` Odoo est conservé → les **anciennes étiquettes physiques du magasin restent scannables sans réétiquetage** (le scanner `trouverParCode` matche `code_barres` OU `code_article`). Ne jamais écraser `code_barres` sur un import.
+
+**Reste pour la vraie migration** : photos (1 854 produits ont une `image_1920` Odoo), marque/grade (pas de source), vérif prix HT/TTC, périmètre stock-seul vs tout (11 402).
+
+### Limite 1000 lignes PostgREST → pagination (2026-07-21)
+
+L'API Supabase plafonne chaque requête à **1 000 lignes**. Après l'import (7 139 produits, 1 869 clients), les listes étaient tronquées → le scanner (résolution **côté client**) ne trouvait plus les produits au-delà de la 1000ᵉ ligne. **Fix** (commit dashboard `5b30f5b`) :
+- Helper `dashboard/lib/queries/fetch-all.ts` (`fetchAllRows`, boucle `.range()` par lots de 1000) appliqué à `listProduits`, `listClients`, `listClientsAvecCommandes` → tout le catalogue est chargé (scanner OK sur Produits **et** Ventes/caisse).
+- `DataTable` : prop **`pageSize`** (pagination d'affichage) câblée à **50** sur Produits + Clients pour garder un rendu rapide (~4,6 Mo pour 7 139 produits).
+- Piste si trop lourd à terme : passer le scan + la recherche + la liste **100 % côté serveur** (requêtes DB paginées, pas de chargement complet client).

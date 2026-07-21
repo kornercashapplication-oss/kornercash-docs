@@ -68,7 +68,7 @@ Les deux apps sont **EN LIGNE** sur Vercel — dashboard https://kornercash-dash
 - [x] Ajout module Or : table `transactions_or` (migration `create_transactions_or`, verrouillée service key, testée + nettoyée) — *2026-06-30*
 - [x] Adresses multiples client : colonne `clients.adresses` (jsonb `'[]'`, migration `add_adresses_jsonb_clients`, non-bloquante pour le dashboard) — *2026-07-01*
 
-**Total : 9 tables (categories, sous_categories, produits, clients, commandes, ventes, rachats, transactions_or, produit_image_jobs), 25 migrations.** Schéma exact des colonnes = source de vérité `dashboard/lib/supabase/types.ts` (celui du site est un sous-ensemble volontaire à 8 tables). Sous-catégories : 18 (15 au seed initial + refonte taxonomie #17).
+**Total : 9 tables (categories, sous_categories, produits, clients, commandes, ventes, rachats, transactions_or, produit_image_jobs), 26 migrations.** Schéma exact des colonnes = source de vérité `dashboard/lib/supabase/types.ts` (celui du site est un sous-ensemble volontaire à 8 tables). Sous-catégories : 18 (15 au seed initial + refonte taxonomie #17).
 
 **Projet Supabase** : ref `nztqbfxsaduockzilrve`, région Frankfurt.
 **RLS** : `categories` / `sous_categories` / `produits` = lecture publique ; `clients` / `commandes` / `ventes` = authenticated « own » (chacun ses données) ; `rachats` / `transactions_or` / `produit_image_jobs` = verrouillés service key.
@@ -173,11 +173,11 @@ Inscription → `admin.generateLink({ type: 'signup' })` → e-mail de confirmat
 - [ ] Session photo du reste du stock (entre 1 000 et 3 000 produits)
 - [ ] Catégorisation + SEO en masse (à cadrer : au fil de l'eau via le dashboard ou en batch)
 
-### Phase 5bis : Migration Odoo — ⏳ EN ATTENTE DE L'ACCÈS (ajouté 2026-07-19)
-KornerCash gère aujourd'hui ses données dans **Odoo**. À migrer vers la DB Supabase avant la mise en service :
-- [ ] **Accès à Odoo** — à demander au client (**bloquant** pour toute la phase)
-- [ ] Migrer tous les **produits** d'Odoo → table `produits`
-- [ ] Migrer tous les **clients** d'Odoo → table `clients`
+### Phase 5bis : Migration Odoo — 🔨 TEST RÉUSSI (2026-07-21), reste la vraie migration
+KornerCash gère ses données dans une base **Odoo 17** mutualisée (`breezb2b-wholesale`, société Kornercash = `company_id=2`). Pipeline idempotent construit + testé → `1 PROJETS/kornerCash/migration-odoo/` (script `odoo_import.py` + `README.md`). Détail schéma → `database architecture.md` § « Import Odoo → Supabase ».
+- [x] **Accès à Odoo** obtenu (XML-RPC, clé API) — *2026-07-21*
+- [x] **Test de migration** : 6 842 produits en stock + 1 869 vendeurs importés (colonne `odoo_id`, migration #26, traçable + rejouable). Mapping catégories validé ; or/bazar exclus ; anciennes étiquettes magasin scannables (code_barres Odoo conservé). Fix de la limite 1000 lignes PostgREST au passage (pagination). — *2026-07-21*
+- [ ] **Vraie migration** (définitive) : rejouer le pipeline + **photos** (1 854 produits ont une image Odoo) + marque/grade + vérif prix HT/TTC + décider périmètre (stock seul 6 856 vs tout 11 402). Nettoyage préalable : `DELETE … WHERE odoo_id IS NOT NULL`.
 - [ ] Sortir toutes les **fiches récap mensuelles** d'Odoo et les archiver (conservation — à garder même après l'abandon d'Odoo)
 
 ### Phase 6 : Tests — 🔨 QUASI TERMINÉE (reste le SEO)
@@ -267,7 +267,7 @@ CHF/EUR (prix stockés en **CHF**), taux fixe provisoire **1 CHF ≈ 1.06 €** 
 
 **Supabase** — projet `kornercash` (région Frankfurt)
 - Ref : `nztqbfxsaduockzilrve` · URL : `https://nztqbfxsaduockzilrve.supabase.co`
-- ✅ 9 tables + RLS + policies + 2 buckets Storage + seed catégories — 25 migrations (dernières : `add_code_passeport_clients` 2026-07-04, `add_stripe_session_id_commandes` 2026-07-09, `add_taux_eur_commandes` 2026-07-19)
+- ✅ 9 tables + RLS + policies + 2 buckets Storage + seed catégories — 26 migrations (dernières : `add_stripe_session_id_commandes` 2026-07-09, `add_taux_eur_commandes` 2026-07-19, `add_odoo_id_produits_clients` 2026-07-21)
 
 **Vercel** (org `trusttheprocess`, plan Hobby)
 - Dashboard : **en ligne** → https://kornercash-dashboard.vercel.app (auto-deploy) — env `FAL_KEY` + 3 modèles `FAL_*` en Production (feature IA)
